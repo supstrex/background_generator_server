@@ -18,6 +18,7 @@ export async function generate(req, res) {
   }
 
   const description = req.body.description || "";
+  console.log(req.file);
   const file = req.file;
 
   if (description.trim().length === 0) {
@@ -63,14 +64,15 @@ export async function generate(req, res) {
 async function addTransparentPaddingToImage(inputFileBuffer) {
   try {
     const metadata = await sharp(inputFileBuffer).metadata();
+    console.log(metadata);
     if (metadata.width == metadata.height) {
       return inputFileBuffer;
     }
 
     const maxDim = Math.max(metadata.width, metadata.height);
 
-    const hPadding = (maxDim - metadata.width) / 2;
-    const vPadding = (maxDim - metadata.height) / 2;
+    const hPadding = Math.round((maxDim - metadata.width) / 2);
+    const vPadding = Math.round((maxDim - metadata.height) / 2);
 
     const outputFileBuffer = await sharp({
       create: {
