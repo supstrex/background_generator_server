@@ -1,6 +1,6 @@
 import { Configuration, OpenAIApi } from "openai";
 import sharp from "sharp";
-
+import { v4 } from 'uuid';
 
 const configuration = new Configuration({
   apiKey: process.env.OPENAI_API_KEY,
@@ -40,12 +40,20 @@ export async function generate(req, res) {
       imageBuffer,
       imageBuffer,
       prompt,
-      1,
-      "512x512"
+      4,
+      "256x256",
+      "b64_json"
     );
-    console.log(response.data.data[0]);
-    const image_url = response.data.data[0].url;
-    res.status(200).send({ image_url });
+
+    const b64_jsons = response.data.data;
+    const images = b64_jsons.map((image)=>{
+      return {
+        id: v4(),
+        imageUrl: "data:image/png;base64,"+image.b64_json
+      };
+    })
+    console.log(images);
+    res.status(200).send(images);
   } catch (error) {
     if (error.response) {
       console.error(error.response.status, error.response.data);
