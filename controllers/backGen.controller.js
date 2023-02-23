@@ -1,6 +1,9 @@
 import { Configuration, OpenAIApi } from "openai";
 import sharp from "sharp";
 import { v4 } from 'uuid';
+import getColors from 'get-image-colors';
+import convert from 'color-convert'
+
 
 const configuration = new Configuration({
   apiKey: process.env.OPENAI_API_KEY,
@@ -21,6 +24,11 @@ export async function generate(req, res) {
   console.log(req.file);
   const file = req.file;
 
+  const colors = await getColors(req.file.buffer, req.file.mimetype);
+  const validColors = colors.map((c) => {
+    return convert.rgb.keyword([c._rgb[0],c._rgb[1],c._rgb[2]])
+  }).filter(c => c);
+
   if (description.trim().length === 0) {
     res.status(400).send({
       error: {
@@ -33,8 +41,8 @@ export async function generate(req, res) {
   const imageBuffer = await addTransparentPaddingToImage(file.buffer);
   imageBuffer.name = file.originalname
 
-  let prompt = `${description}`;
-
+  let prompt = `${description} with ${validColors.join(',')} colors appropriate to content`;
+  console.log(prompt);
   try {
     const response = await openai.createImageEdit(
       imageBuffer,
@@ -42,10 +50,11 @@ export async function generate(req, res) {
       prompt,
       4,
       "256x256",
-      "b64_json"
+      'b64_json'
     );
 
     const b64_jsons = response.data.data;
+    console.log(b64_jsons);
     const images = b64_jsons.map((image)=>{
       return {
         id: v4(),
