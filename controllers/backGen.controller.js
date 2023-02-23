@@ -21,8 +21,8 @@ export async function generate(req, res) {
 
   const description = req.body.description || "";
   const file = req.file;
-  const colorAutoDetection = req.body.colorDetection;
-  const lightAutoDetection = req.body.lightDetection;
+  const colorAutoDetection = req.body.colorDetection === 'true' ? true : false;
+  const lightAutoDetection = req.body.lightDetection === 'true' ? true : false;
 
   if (description.trim().length === 0) {
     res.status(400).send({
@@ -32,7 +32,7 @@ export async function generate(req, res) {
     });
     return;
   }
-
+console.log(lightAutoDetection , colorAutoDetection);
   let lightingPrompt;
   if (lightAutoDetection) {
     lightingPrompt = await lightingDetection(file.buffer);
