@@ -1,0 +1,47 @@
+openapi: 3.0.0
+info:
+  title: Sample API
+  description: Api description TODO
+  version: 1.0.0
+servers:
+  - url: http://localhost:3001
+    description: Optional server description, e.g. Main (production) server
+paths:
+  "/backgroundgenerator":
+    post:
+      summary: uploads an image
+      x-swagger-router-controller: SampleController
+      description: ""
+      operationId: uploadFile
+      consumes:
+        - multipart/form-data
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:  # List the required properties here
+                 - image
+                 - description
+              properties:
+                image:
+                  type: array
+                  required: true
+                  items:
+                    type: string
+                    format: binary
+                description: 
+                  type: string
+                  required: true
+                colorDetection:
+                  type: string
+                lightDetection:
+                  type: string
+                style: 
+                  type: string
+      responses:
+        "200":
+          description: array image urls
+          type: array
+          
+  

@@ -5,6 +5,6 @@ import multer from "multer";
 const storage = multer.memoryStorage();
 const upload = multer({ storage: storage, limits: { fileSize: 2097152 } });
 
-export const router = express.Router();
+export const router = express.Router(); 
 
 router.post("/", upload.single("image"), generate);
