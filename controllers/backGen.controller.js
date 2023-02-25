@@ -2,10 +2,12 @@ import { Configuration, OpenAIApi } from "openai";
 import getColors from "get-image-colors";
 import convert from "color-convert";
 import sharp from "sharp";
-import {v4 as uuid} from 'uuid';
+import { v4 as uuid } from "uuid";
+
 const configuration = new Configuration({
   apiKey: process.env.OPENAI_API_KEY,
 });
+
 const openai = new OpenAIApi(configuration);
 export async function generate(req, res) {
   if (!configuration.apiKey) {
@@ -18,9 +20,10 @@ export async function generate(req, res) {
   }
   const description = req.body.description || "";
   const file = req.file;
-  const colorAutoDetection = req.body.colorDetection === 'true' ? true : false;
-  const lightAutoDetection = req.body.lightDetection === 'true' ? true : false;
+  const colorAutoDetection = req.body.colorDetection === "true" ? true : false;
+  const lightAutoDetection = req.body.lightDetection === "true" ? true : false;
   const style = req.file.style || "";
+
   if (description.trim().length === 0) {
     res.status(400).send({
       error: {
@@ -29,19 +32,26 @@ export async function generate(req, res) {
     });
     return;
   }
+
   let lightingPrompt;
   if (lightAutoDetection) {
     lightingPrompt = await lightingDetection(file.buffer);
   }
+
   let colorsPrompt;
   if (colorAutoDetection) {
     colorsPrompt = await colorDetection(file);
   }
+
   const imageBuffer = await addTransparentPaddingToImage(file.buffer);
   imageBuffer.name = file.originalname;
-  let prompt = `${description}${style ? ' ' + style : ''}${colorsPrompt ? " with " + colorsPrompt + " colors" : " "
-    }${lightingPrompt ? ", lighting from " + lightingPrompt : " "}`;
+
+  let prompt = `A background image ${description}${style ? " " + style : ""}${
+    colorsPrompt ? " with " + colorsPrompt + " colors" : " "
+  }${lightingPrompt ? ", lighting from " + lightingPrompt : " "}`;
+  
   console.log(prompt);
+
   try {
     const response = await openai.createImageEdit(
       imageBuffer,
@@ -52,11 +62,11 @@ export async function generate(req, res) {
       "b64_json"
     );
     const b64_jsons = response.data.data;
-    const urls = await backToStart(file.buffer, b64_jsons)
-    const images = urls.map((url) => {
+    //const urls = await backToStart(file.buffer, b64_jsons)
+    const images = b64_jsons.map((item) => {
       return {
         id: uuid(),
-        imageUrl: url,
+        imageUrl: "data:image/png;base64," + item.b64_json,
       };
     });
     res.status(200).send(images);
@@ -74,6 +84,7 @@ export async function generate(req, res) {
     }
   }
 }
+
 async function addTransparentPaddingToImage(inputFileBuffer) {
   try {
     const metadata = await sharp(inputFileBuffer).metadata();
@@ -101,13 +112,17 @@ async function addTransparentPaddingToImage(inputFileBuffer) {
     return err;
   }
 }
+
 async function backToStart(inputFileBuffer, b64_jsons) {
   try {
     const images = [];
     for (const iterator of b64_jsons) {
       const metadata = await sharp(inputFileBuffer).metadata();
-      const buffer = Buffer.from(iterator.b64_json, 'base64')
-      const newimage = await sharp(buffer).resize(metadata.width, metadata.height).toFormat(sharp.format.png).toBuffer()
+      const buffer = Buffer.from(iterator.b64_json, "base64");
+      const newimage = await sharp(buffer)
+        .resize(metadata.width, metadata.height)
+        .toFormat(sharp.format.png)
+        .toBuffer();
       const outputFileBuffer = await sharp({
         create: {
           width: metadata.width,
@@ -119,13 +134,16 @@ async function backToStart(inputFileBuffer, b64_jsons) {
         .composite([{ input: newimage, left: 0, top: 0 }])
         .toFormat(sharp.format.png)
         .toBuffer();
-     images.push("data:image/png;base64," + outputFileBuffer.toString('base64'));
+      images.push(
+        "data:image/png;base64," + outputFileBuffer.toString("base64")
+      );
     }
-    return images
+    return images;
   } catch (err) {
     console.error(err);
   }
 }
+
 async function lightingDetection(imageBuffer) {
   try {
     // Load the image metadata
@@ -185,6 +203,7 @@ async function lightingDetection(imageBuffer) {
     console.error(err);
   }
 }
+
 async function colorDetection(file) {
   const colors = await getColors(file.buffer, file.mimetype);
   const validColors = colors
@@ -194,6 +213,7 @@ async function colorDetection(file) {
     .filter((c) => c);
   return validColors.join(", ");
 }
+
 export default {
   generate,
 };
